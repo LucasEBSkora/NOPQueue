@@ -1,76 +1,106 @@
 #include <iostream>
-#include <queue>
+#include <deque>
 #include <vector>
 #include <functional>
 
-typedef std::queue<std::function<void(void)>> NOPQueue;
+#define LAMBDA_CALL(f) ([this] { f ();})
+#define LAMBDA_EXPRESSION(e) ([this] {return e;})
+typedef std::deque<std::function<void(void)>> NOPQueue;
 
 NOPQueue NotificationQueue;
+
+struct BooleanAttribute {
+  bool value;
+  const std::vector<std::function<void(void)>> notifyList;
+
+  BooleanAttribute(bool value, const std::vector<std::function<void(void)>> notifyList) : value{value}, notifyList{notifyList} {}
+
+    void update(bool newValue) {
+    if (value != newValue) {
+      NotificationQueue.push_back([&, this] {this->notify();});
+      value = newValue;
+    }
+  }
+  
+  void notify() {
+      NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
+  }
+};
+
+struct Premise {
+  std::function<bool(void)> expression;
+  bool value;
+  const std::vector<std::function<void(void)>> notifyList;
+
+  Premise(std::function<bool(void)> expression, const std::vector<std::function<void(void)>> notifyList) 
+    : expression{expression}, value{expression()}, notifyList{notifyList} {}
+
+  void update() {
+    bool newValue = expression();
+    if (value != newValue) {
+      NotificationQueue.push_back([&, this] {this->notify();});
+      value = newValue;
+    }
+  }
+  
+  void notify() {
+      NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
+  }
+};
+
+struct Condition {
+  std::function<bool(void)> expression;
+  bool value;
+  const std::vector<std::function<void(void)>> notifyList;
+
+  Condition(std::function<bool(void)> expression, const std::vector<std::function<void(void)>> notifyList) 
+    : expression{expression}, value{expression()}, notifyList{notifyList} {}
+
+  void update() {
+    bool newValue = expression();
+    if (value != newValue) {
+      NotificationQueue.push_back([&, this] {this->notify();});
+      value = newValue;
+    }
+  }
+  
+  void notify() {
+    if (value) {
+      NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
+    }
+  }
+};
+
 
 
 struct Main {
 
-  bool atStatus;
-  bool prStatus;
-  bool cdStatus;
+  BooleanAttribute atStatus;
+  Premise prStatus;
+  Condition cdStatus;
 
   void mtChange() {
     std::cout << "hello world!" << std::endl;
-    UpdateAtStatus(true);
+    atStatus.update(true);
   }
 
   void NotifyinChange() {
-    NotificationQueue.push([&, this] {this->mtChange();});
+    NotificationQueue.push_back([&, this] {this->mtChange();});
   }
 
   void NotifyAcChange() {
-    NotificationQueue.push([&, this] {this->NotifyinChange();});
+    NotificationQueue.push_back([&, this] {this->NotifyinChange();});
   }
 
   void NotifyRlChange() {
-    NotificationQueue.push([&, this] {this->NotifyAcChange();});
+    NotificationQueue.push_back([&, this] {this->NotifyAcChange();});
   }
 
-  void UpdateCdStatus() {
-    bool newValue = prStatus;
-    if (cdStatus != newValue) {
-      NotificationQueue.push([&, this] {this->NotifyCdStatus();});    
-      cdStatus = newValue;
-    } 
-  }
-
-  void NotifyCdStatus() {
-    if (cdStatus) {
-      NotificationQueue.push([&, this] {this->NotifyRlChange();});    
-    }
-  }
-
-
-  void UpdatePrStatus() {
-    bool newValue = (atStatus == true);
-    if (prStatus != newValue) {
-      NotificationQueue.push([&, this] {this->NotifyPrStatus();});    
-      prStatus = newValue;
-    }
-  }
-
-  void NotifyPrStatus() {
-      UpdateCdStatus();
-  }
-
-  void UpdateAtStatus(bool newValue) {
-    if (atStatus != newValue) {
-      NotificationQueue.push([&, this] {this->NotifyAtStatus();});
-    atStatus = newValue;
-    }
-  }
-
-  void NotifyAtStatus() {
-      UpdatePrStatus();
-  }
-
-  Main() : atStatus{false}, prStatus{false}, cdStatus{false} {
-    UpdateAtStatus(true);
+  Main() : 
+    atStatus{false, {LAMBDA_CALL(prStatus.update)}}, 
+    prStatus{LAMBDA_EXPRESSION(atStatus.value == true), {LAMBDA_CALL(cdStatus.update)}}, 
+    cdStatus{LAMBDA_EXPRESSION(prStatus.value), {LAMBDA_CALL(NotifyRlChange)}} {
+    atStatus.update(true);
   }
 
 };
@@ -80,7 +110,7 @@ int main()
   Main main;
   while (!NotificationQueue.empty()) {
     NotificationQueue.front()();
-    NotificationQueue.pop();
+    NotificationQueue.pop_front();
   }
   
   return 0;
