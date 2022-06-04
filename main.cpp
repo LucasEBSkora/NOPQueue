@@ -10,9 +10,9 @@ NOPQueue NotificationQueue;
 
 struct Main {
 
-  struct {bool old; bool current;} atStatus;
-  struct {bool old; bool current;} prStatus;
-  struct {bool old; bool current;} cdStatus;
+  bool atStatus;
+  bool prStatus;
+  bool cdStatus;
 
   void mtChange() {
     std::cout << "hello world!" << std::endl;
@@ -32,25 +32,25 @@ struct Main {
   }
 
   void UpdateCdStatus() {
-    cdStatus.old = cdStatus.current;
-    cdStatus.current = prStatus.current;
-    if (cdStatus.current != cdStatus.old) {
+    bool newValue = prStatus;
+    if (cdStatus != newValue) {
       NotificationQueue.push([&, this] {this->NotifyCdStatus();});    
+      cdStatus = newValue;
     } 
   }
 
   void NotifyCdStatus() {
-    if (cdStatus.current) {
+    if (cdStatus) {
       NotificationQueue.push([&, this] {this->NotifyRlChange();});    
     }
   }
 
 
   void UpdatePrStatus() {
-    prStatus.old = prStatus.current;
-    prStatus.current = (atStatus.current == true);
-    if (prStatus.current != prStatus.old) {
+    bool newValue = (atStatus == true);
+    if (prStatus != newValue) {
       NotificationQueue.push([&, this] {this->NotifyPrStatus();});    
+      prStatus = newValue;
     }
   }
 
@@ -59,10 +59,9 @@ struct Main {
   }
 
   void UpdateAtStatus(bool newValue) {
-    atStatus.old = atStatus.current;
-    atStatus.current = newValue;
-    if (atStatus.current != atStatus.old) {
+    if (atStatus != newValue) {
       NotificationQueue.push([&, this] {this->NotifyAtStatus();});
+    atStatus = newValue;
     }
   }
 
@@ -70,9 +69,8 @@ struct Main {
       UpdatePrStatus();
   }
 
-  Main() : atStatus{false, false}, prStatus{false, false}, cdStatus{false, false} {
+  Main() : atStatus{false}, prStatus{false}, cdStatus{false} {
     UpdateAtStatus(true);
-    
   }
 
 };
