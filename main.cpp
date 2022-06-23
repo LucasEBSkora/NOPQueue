@@ -18,22 +18,17 @@ class Attribute
 public:
   Attribute(T value, const std::vector<std::function<void(void)>> notifyList) : value{value}, notifyList{notifyList} {}
 
-  T operator = (T newValue) {
+  T operator=(T newValue)
+  {
     if (value != newValue)
     {
-      NotificationQueue.push_back([&, this]
-                                  { this->notify(); });
       value = newValue;
+      NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
     }
     return newValue;
   }
 
-  void notify()
-  {
-    NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
-  }
-
-  operator T()
+  operator T() const
   {
     return value;
   }
@@ -55,18 +50,12 @@ public:
     bool newValue = expression();
     if (value != newValue)
     {
-      NotificationQueue.push_back([&, this]
-                                  { this->notify(); });
       value = newValue;
+      NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
     }
   }
 
-  void notify()
-  {
-    NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
-  }
-
-  inline operator bool()
+  operator bool() const 
   {
     return value;
   }
@@ -87,21 +76,15 @@ public:
     bool newValue = expression();
     if (value != newValue)
     {
-      NotificationQueue.push_back([&, this]
-                                  { this->notify(); });
       value = newValue;
+      if (value)
+      {
+        NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
+      }
     }
   }
 
-  void notify()
-  {
-    if (value)
-    {
-      NotificationQueue.insert(NotificationQueue.end(), notifyList.begin(), notifyList.end());
-    }
-  }
-
-  inline operator bool()
+  operator bool() const
   {
     return value;
   }
@@ -151,6 +134,7 @@ int main()
   Main main;
   while (!NotificationQueue.empty())
   {
+    std::cout << "size of queue: " << NotificationQueue.size() << std::endl;
     NotificationQueue.front()();
     NotificationQueue.pop_front();
   }
