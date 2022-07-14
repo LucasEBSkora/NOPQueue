@@ -1,2 +1,2 @@
 # NOPQueue
-Attempt of implementing a queue oriented  Notification Oriented Paradigm 
+Attempt of implementing a EN Graph Execution algorithm
